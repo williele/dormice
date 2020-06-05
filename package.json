@@ -1,0 +1,26 @@
+{
+  "name": "dormice",
+  "version": "0.0.1-alpha.0",
+  "description": "dependecies injection decorators structure framework builder",
+  "main": "./dist/public-api.js",
+  "repository": "https://github.com/williele/dormice",
+  "author": "williele",
+  "license": "MIT",
+  "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "prebuild": "rm -rf ./dist",
+    "build": "tsc -p ./src",
+    "prepublish": "npm run build"
+  },
+  "devDependencies": {
+    "@types/jest": "^25.2.3",
+    "jest": "^26.0.1",
+    "ts-jest": "^26.1.0",
+    "typescript": "^3.9.5"
+  },
+  "dependencies": {
+    "inversify": "^5.0.1",
+    "reflect-metadata": "^0.1.13"
+  }
+}
