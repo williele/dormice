@@ -1,6 +1,6 @@
 {
   "name": "dormice",
-  "version": "0.0.1-alpha.1",
+  "version": "0.0.1-alpha.2",
   "description": "dependecies injection decorators structure framework builder",
   "main": "./dist/public-api.js",
   "repository": "https://github.com/williele/dormice",
