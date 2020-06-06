@@ -1,6 +1,4 @@
-import { injectable } from "inversify";
 import { DecoratorConfig, DecoratorInfo, FactoryConfig } from "./types";
-import { INJECTABLED } from "./metakeys";
 
 /**
  * this function make multiple type of decorators
@@ -8,6 +6,9 @@ import { INJECTABLED } from "./metakeys";
  *
  * it required factory config for later process during bootstraping
  * and a callback function for addition custom modifier
+ *
+ * @param config decorator config
+ * @param callback extra processing callback, return decorator info and factory config
  */
 export function makeDecorator<T = any>(
   config: DecoratorConfig<T>,

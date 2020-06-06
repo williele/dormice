@@ -1,3 +1,6 @@
+// constructable class shorthand type
+export type Constructable<T = any> = { new (...args): T };
+
 // factory is a function which return configuration stack
 export type Factory<T> =
   | ((...args: any[]) => T)
@@ -14,6 +17,20 @@ export type FactoryConfig<T> =
       factory: Factory<T>;
     }
   | Factory<T>;
+
+// list of providers
+export type ProviderToken = string | symbol;
+
+export type ProviderValue = {
+  token: ProviderToken;
+  useValue: any;
+};
+export type ProviderFactory = {
+  token: ProviderToken;
+  useFactory: FactoryConfig<any>;
+};
+export type Provider = ProviderValue | ProviderFactory | Constructable;
+export type Providers = Provider[];
 
 /**
  * configuration for customize make decorator
