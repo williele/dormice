@@ -1,15 +1,15 @@
-import { FactoryConfig } from "./types";
+import { FactoryConfig, DecoratorMetadata, DecoratorFactories } from "./types";
 import { INJECTABLED } from "./metakeys";
 import { injectable } from "inversify";
 
 /**
- * registe a factory config into property or method data
+ * registe a factory config into sub (property or method) data
  * @param target target property
  * @param key object key
  * @param metadatakey metadata key
  * @param factoryConfig factory config from make decorator
  */
-export function registePropertyMeta<T>(
+export function registeSubMeta<T>(
   target,
   key: string,
   metadatakey: symbol,
@@ -26,12 +26,12 @@ export function registePropertyMeta<T>(
 }
 
 /**
- * store a factory config into class metadata
+ * store a factory config into root metadata
  * @param target target class
  * @param metadataKey metadata key
  * @param factoryConfig factory config from make decorator
  */
-export function registeClassMeta<T>(
+export function registeRootMeta<T>(
   target,
   metadataKey: string | symbol,
   factoryConfig: FactoryConfig<T>
@@ -58,4 +58,25 @@ export function registeInjectable(target) {
   } else {
     return target;
   }
+}
+
+/**
+ * get factories configs store inside target object
+ * @param target target object
+ * @param metadata root and sub metadata where to store factory confg
+ */
+export function getFactoryConfigs<R, S>(
+  target,
+  metadata: DecoratorMetadata
+): DecoratorFactories<R, S> {
+  return {
+    root:
+      (metadata.rootMetadata &&
+        Reflect.getMetadata(metadata.rootMetadata, target)) ||
+      [],
+    sub:
+      (metadata.subMetadata &&
+        Reflect.getMetadata(metadata.subMetadata, target)) ||
+      {},
+  };
 }

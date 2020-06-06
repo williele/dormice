@@ -1,5 +1,6 @@
 import { makeDecorator } from "../src/decorators";
 import { DecoratorInfo, DecoratorConfig, FactoryConfig } from "../src/types";
+import { Container } from "inversify";
 
 describe("decorators builder", () => {
   it("should make single target decorator correctly", () => {
@@ -9,24 +10,22 @@ describe("decorators builder", () => {
       return mockFactory;
     });
 
-    const processCallback = jest.fn(
-      (info: DecoratorInfo, factoryConfig: FactoryConfig<any>) => {
-        expect(info).toBeTruthy();
-        expect(factoryConfig).toBe(mockFactory);
-        expect(info.on).toBe("class");
-      }
-    );
-
-    const Decorator = makeDecorator(
-      { on: ["class"], callback: mockCallback },
-      processCallback
-    );
+    const Decorator = makeDecorator({
+      on: ["class"],
+      injectable: true,
+      callback: mockCallback,
+    });
 
     @Decorator
     @Decorator
     class MyClass {}
 
     expect(mockCallback.mock.calls.length).toBe(2);
+    // should injectable
+    const container = new Container();
+    container.bind(MyClass).toSelf();
+    const inst = container.get(MyClass);
+    expect(container.get(MyClass)).toStrictEqual(inst);
   });
 
   it("should make multiple targets decorator correctly", () => {
@@ -47,29 +46,26 @@ describe("decorators builder", () => {
       prop: string;
 
       @Decorator
+      @Decorator
       method() {}
     }
 
     // ignore properties
-    expect(mockCallback.mock.calls.length).toBe(2);
+    expect(mockCallback.mock.calls.length).toBe(3);
   });
 
   it("should make decorator for all target correctly", () => {
+    const ROOT = Symbol("root");
+    const SUB = Symbol("sub");
+
     const mockFactory = () => {};
     const mockCallback = jest.fn((info: DecoratorInfo) => {
       expect(["class", "method", "property"]).toContain(info.on);
       return mockFactory;
     });
-    const processCallback = jest.fn(
-      (info: DecoratorInfo, factoryConfig: FactoryConfig<any>) => {
-        expect(factoryConfig).toBe(mockFactory);
-        expect(info).toBeTruthy();
-      }
-    );
-
     const Decorator = makeDecorator(
       { on: ["class", "property", "method"], callback: mockCallback },
-      processCallback
+      { rootMetadata: ROOT, subMetadata: SUB }
     );
 
     @Decorator
@@ -82,7 +78,11 @@ describe("decorators builder", () => {
     }
 
     expect(mockCallback.mock.calls.length).toBe(3);
-    expect(processCallback.mock.calls.length).toBe(3);
+    expect(Reflect.getMetadata(ROOT, MyClass)).toStrictEqual([mockFactory]);
+    expect(Reflect.getMetadata(SUB, MyClass)).toStrictEqual({
+      prop: [mockFactory],
+      method: [mockFactory],
+    });
   });
 
   it("should make multistep decorator work corretly", () => {

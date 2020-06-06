@@ -1,4 +1,5 @@
-import { DecoratorConfig, DecoratorInfo, FactoryConfig } from "./types";
+import { DecoratorConfig, DecoratorInfo, DecoratorMetadata } from "./types";
+import { registeSubMeta, registeRootMeta, registeInjectable } from "./register";
 
 /**
  * this function make multiple type of decorators
@@ -12,7 +13,7 @@ import { DecoratorConfig, DecoratorInfo, FactoryConfig } from "./types";
  */
 export function makeDecorator<T = any>(
   config: DecoratorConfig<T>,
-  callback?: (info: DecoratorInfo, config: FactoryConfig<T>) => any
+  metadataKeys?: DecoratorMetadata
 ) {
   return (target, key?: string, descriptor?: PropertyDescriptor) => {
     // get reflect type in metadata
@@ -38,9 +39,14 @@ export function makeDecorator<T = any>(
 
       // get factory config
       const factoryConfig = config.callback(info);
-
-      if (callback) return callback(info, factoryConfig);
-      else return;
+      if (metadataKeys?.subMetadata) {
+        registeSubMeta(
+          target.constructor,
+          key!,
+          metadataKeys.subMetadata,
+          factoryConfig
+        );
+      }
     }
 
     // property
@@ -58,9 +64,14 @@ export function makeDecorator<T = any>(
 
       // get factory config
       const factoryConfig = config.callback(info);
-
-      if (callback) return callback(info, factoryConfig);
-      else return;
+      if (metadataKeys?.subMetadata) {
+        registeSubMeta(
+          target.constructor,
+          key!,
+          metadataKeys.subMetadata,
+          factoryConfig
+        );
+      }
     }
 
     // class
@@ -69,9 +80,14 @@ export function makeDecorator<T = any>(
 
       // get factory config
       const factoryConfig = config.callback(info);
+      if (metadataKeys?.rootMetadata) {
+        registeRootMeta(target, metadataKeys.rootMetadata, factoryConfig);
+      }
 
-      if (callback) return callback(info, factoryConfig);
-      else return target;
+      // make injectable
+      if (config.injectable) {
+        return registeInjectable(target);
+      }
     }
   };
 }
