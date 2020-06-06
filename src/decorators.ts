@@ -1,5 +1,5 @@
 import { injectable } from "inversify";
-import { DecoratorConfig, DecoratorInfo } from "./types";
+import { DecoratorConfig, DecoratorInfo, FactoryConfig } from "./types";
 import { INJECTABLED } from "./metakeys";
 
 /**
@@ -9,7 +9,10 @@ import { INJECTABLED } from "./metakeys";
  * it required factory config for later process during bootstraping
  * and a callback function for addition custom modifier
  */
-export function makeDecorator<T = any>(config: DecoratorConfig<T>) {
+export function makeDecorator<T = any>(
+  config: DecoratorConfig<T>,
+  callback?: (info: DecoratorInfo, config: FactoryConfig<T>) => any
+) {
   return (target, key?: string, descriptor?: PropertyDescriptor) => {
     // get reflect type in metadata
     const typeInfo: Partial<DecoratorInfo> = {
@@ -32,14 +35,11 @@ export function makeDecorator<T = any>(config: DecoratorConfig<T>) {
         ...typeInfo,
       };
 
-      // get factory config and define metadata
-      if (!config.methodMetadata) throw new Error("methodMetadata is missing");
+      // get factory config
       const factoryConfig = config.callback(info);
-      Reflect.defineMetadata(
-        config.methodMetadata,
-        factoryConfig,
-        target.constructor
-      );
+
+      if (callback) return callback(info, factoryConfig);
+      else return;
     }
 
     // property
@@ -55,35 +55,22 @@ export function makeDecorator<T = any>(config: DecoratorConfig<T>) {
         ...typeInfo,
       };
 
-      // get factory config and define metadata
-      if (!config.propertyMetadata)
-        throw new Error("propertyMetadata is missing");
+      // get factory config
       const factoryConfig = config.callback(info);
-      Reflect.defineMetadata(
-        config.propertyMetadata,
-        factoryConfig,
-        target.constructor
-      );
+
+      if (callback) return callback(info, factoryConfig);
+      else return;
     }
 
     // class
     else if (config.on.includes("class") && typeof target === "function") {
       const info: DecoratorInfo = { on: "class", target, ...typeInfo };
 
-      // get factory config and define metadata
-      if (!config.classMetadata) throw new Error("classMetadata is missing");
+      // get factory config
       const factoryConfig = config.callback(info);
-      Reflect.defineMetadata(config.classMetadata, factoryConfig, target);
 
-      // make class injectable
-      if (config.injectable) {
-        // check if already injectable
-        const injectabled = Reflect.getMetadata(INJECTABLED, target) || false;
-        if (!injectabled) {
-          Reflect.defineMetadata(INJECTABLED, true, target);
-          return injectable()(target);
-        }
-      }
+      if (callback) return callback(info, factoryConfig);
+      else return target;
     }
   };
 }

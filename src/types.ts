@@ -22,20 +22,9 @@ export interface DecoratorConfig<T> {
   // which type of decorators is this.
   // definition by a array, for it can be multiple types
   on: ("class" | "method" | "property")[];
-  // metadata symbol where to store the factory config on class level
-  // required if decorator deploy for class, missing will lead to error
-  classMetadata?: symbol;
-  // metadata symbol where to store the factory config on properties level
-  // required if decorator deploy of properties, missing will lead to error
-  propertyMetadata?: symbol;
-  // metadata symbol where to store the factory config on method level
-  // required if decorator deploy of method, missing will lead to error
-  methodMetadata?: symbol;
   // callback provide information about decorator for customizer
   // callback should return a factory config to store on metadata to later processing
   callback: (info: DecoratorInfo) => FactoryConfig<T>;
-  // if true it will make decorator class injectable
-  injectable?: boolean;
 }
 
 export interface DecoratorInfo {

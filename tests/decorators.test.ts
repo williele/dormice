@@ -1,12 +1,7 @@
-import { Container } from "inversify";
 import { makeDecorator } from "../src/decorators";
-import { DecoratorInfo } from "../src/types";
+import { DecoratorInfo, DecoratorConfig, FactoryConfig } from "../src/types";
 
 describe("decorators builder", () => {
-  const CLASS = Symbol("class");
-  const METHOD = Symbol("multiple");
-  const PROPERTY = Symbol("property");
-
   it("should make single target decorator correctly", () => {
     const mockFactory = () => {};
     const mockCallback = jest.fn((info: DecoratorInfo) => {
@@ -14,24 +9,24 @@ describe("decorators builder", () => {
       return mockFactory;
     });
 
-    const Decorator = makeDecorator({
-      on: ["class"],
-      classMetadata: CLASS,
-      injectable: true,
-      callback: mockCallback,
-    });
+    const processCallback = jest.fn(
+      (info: DecoratorInfo, factoryConfig: FactoryConfig<any>) => {
+        expect(info).toBeTruthy();
+        expect(factoryConfig).toBe(mockFactory);
+        expect(info.on).toBe("class");
+      }
+    );
+
+    const Decorator = makeDecorator(
+      { on: ["class"], callback: mockCallback },
+      processCallback
+    );
 
     @Decorator
     @Decorator
     class MyClass {}
 
     expect(mockCallback.mock.calls.length).toBe(2);
-    // should make it injectable
-    const container = new Container();
-    container.bind(MyClass).toSelf();
-    expect(container.get(MyClass)).toBeTruthy();
-    // should store the factory config
-    expect(Reflect.getMetadata(CLASS, MyClass)).toBe(mockFactory);
   });
 
   it("should make multiple targets decorator correctly", () => {
@@ -43,8 +38,6 @@ describe("decorators builder", () => {
 
     const Decorator = makeDecorator({
       on: ["class", "method"],
-      classMetadata: CLASS,
-      methodMetadata: METHOD,
       callback: mockCallback,
     });
 
@@ -59,35 +52,6 @@ describe("decorators builder", () => {
 
     // ignore properties
     expect(mockCallback.mock.calls.length).toBe(2);
-    // should store factory config in the right place
-    expect(Reflect.getMetadata(CLASS, MyClass)).toBe(mockFactory);
-    expect(Reflect.getMetadata(METHOD, MyClass)).toBe(mockFactory);
-  });
-
-  it("should throw error if metedata not provide", () => {
-    const Decorator = makeDecorator({
-      on: ["class", "method", "property"],
-      callback: () => () => {},
-    });
-
-    expect(() => {
-      @Decorator
-      class MyClass {}
-    }).toThrow();
-
-    expect(() => {
-      class MyClass {
-        @Decorator
-        prop;
-      }
-    }).toThrow();
-
-    expect(() => {
-      class MyClass {
-        @Decorator
-        method() {}
-      }
-    }).toThrow();
   });
 
   it("should make decorator for all target correctly", () => {
@@ -96,13 +60,17 @@ describe("decorators builder", () => {
       expect(["class", "method", "property"]).toContain(info.on);
       return mockFactory;
     });
-    const Decorator = makeDecorator({
-      on: ["class", "property", "method"],
-      callback: mockCallback,
-      classMetadata: CLASS,
-      methodMetadata: METHOD,
-      propertyMetadata: PROPERTY,
-    });
+    const processCallback = jest.fn(
+      (info: DecoratorInfo, factoryConfig: FactoryConfig<any>) => {
+        expect(factoryConfig).toBe(mockFactory);
+        expect(info).toBeTruthy();
+      }
+    );
+
+    const Decorator = makeDecorator(
+      { on: ["class", "property", "method"], callback: mockCallback },
+      processCallback
+    );
 
     @Decorator
     class MyClass {
@@ -114,8 +82,27 @@ describe("decorators builder", () => {
     }
 
     expect(mockCallback.mock.calls.length).toBe(3);
-    expect(Reflect.getMetadata(CLASS, MyClass)).toBe(mockFactory);
-    expect(Reflect.getMetadata(METHOD, MyClass)).toBe(mockFactory);
-    expect(Reflect.getMetadata(PROPERTY, MyClass)).toBe(mockFactory);
+    expect(processCallback.mock.calls.length).toBe(3);
+  });
+
+  it("should make multistep decorator work corretly", () => {
+    interface Special {
+      message: string;
+    }
+
+    function makeSpecialDecorator(config: DecoratorConfig<Special>) {
+      return makeDecorator(config);
+    }
+
+    const Decorator = makeSpecialDecorator({
+      on: ["class", "property"],
+      callback: () => () => ({ message: "hello world" }),
+    });
+
+    @Decorator
+    class MyClass {
+      @Decorator
+      prop;
+    }
   });
 });
