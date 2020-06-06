@@ -1,0 +1,7 @@
+.git
+src
+tests
+jest.config.js
+yarn.lock
+.DS_Store
+/coverage
