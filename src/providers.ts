@@ -54,9 +54,11 @@ export async function processFactories<T>(
 
 // process all type of providers
 export async function processProviders(
-  container: Container,
-  providers: Providers
-) {
+  providers: Providers,
+  container?: Container
+): Promise<Container> {
+  container = container || new Container();
+
   for (const provider of providers) {
     //  class
     if (typeof provider === "function") {
@@ -75,6 +77,7 @@ export async function processProviders(
       container.bind(provider.token).toConstantValue(value);
     }
   }
+  return container;
 }
 
 /**
@@ -110,8 +113,5 @@ export async function processDecorators<R, S>(
   // solve root factories
   const rootData: R[] = await processFactories(factories.root, rootContainer);
 
-  return {
-    root: rootData,
-    sub: subData,
-  };
+  return { root: rootData, sub: subData };
 }

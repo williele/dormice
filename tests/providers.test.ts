@@ -91,21 +91,19 @@ describe("providers", () => {
     const StringToken = Symbol("string");
     const FactoryToken = Symbol("factory");
 
-    const providers: Providers = [
+    let providers: Providers = [
       MyClass,
       { useValue: "hello world", token: StringToken },
       {
         token: FactoryToken,
         useFactory: {
           deps: () => [StringToken],
-          factory: jest.fn((str: string) => {
-            return Promise.resolve(str);
-          }),
+          factory: jest.fn((str: string) => Promise.resolve(str)),
         },
       },
     ];
 
-    await processProviders(container, providers);
+    await processProviders(providers, container);
 
     expect(container.get(MyClass)).toBeTruthy();
     expect(container.get(MyClass)).toBeInstanceOf(MyClass);
@@ -114,6 +112,11 @@ describe("providers", () => {
 
     expect(container.get(StringToken)).toBe("hello world");
     expect(container.get(FactoryToken)).toBe("hello world");
+
+    // should create a container
+    providers = [{ useValue: "hello world", token: StringToken }];
+    const customContainer = await processProviders(providers);
+    expect(customContainer.get(StringToken)).toBe("hello world");
   });
 
   it("should processing decorator factory", async () => {
