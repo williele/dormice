@@ -65,6 +65,17 @@ export interface DecoratorFactories<R, S> {
   sub: { [key: string]: FactoryConfig<S>[] };
 }
 
+/**
+ * decorator data after process factories
+ */
+export interface DecoratorData<R, S> {
+  root: R[];
+  sub: { [key: string]: S[] };
+}
+
+/**
+ * decorator information use for callback to customizer
+ */
 export interface DecoratorInfo {
   // where is the decotor deploy on
   // parameter and method will return both as method

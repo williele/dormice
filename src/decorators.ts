@@ -85,9 +85,7 @@ export function makeDecorator<T = any>(
       }
 
       // make injectable
-      if (config.injectable) {
-        return registeInjectable(target);
-      }
+      return registeInjectable(target);
     }
   };
 }

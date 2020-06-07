@@ -1,7 +1,15 @@
 // processing all types of providers
 
 import { Container } from "inversify";
-import { FactoryConfig, Providers } from "./types";
+import {
+  FactoryConfig,
+  Providers,
+  DecoratorData,
+  DecoratorMetadata,
+  Constructable,
+} from "./types";
+import { getFactoryConfigs } from "./register";
+import { RootInstance, PreviousData, SubData } from "./token";
 
 // process a factory by factory config
 // provide neccessary dependencies for factory
@@ -17,6 +25,31 @@ export async function processFactory<T>(
     const dependencies = deps && deps().map((dep) => container.get(dep));
     return factory(...dependencies);
   }
+}
+
+/**
+ * process list of factories
+ */
+export async function processFactories<T>(
+  factoryConfigs: FactoryConfig<T>[],
+  container?: Container
+): Promise<T[]> {
+  let result: T[] = [];
+  for (const factory of factoryConfigs) {
+    const subContainer = new Container();
+    if (container) {
+      subContainer.parent = container;
+    }
+
+    // binding previous data
+    subContainer.bind(PreviousData).toConstantValue(result);
+    const data = await processFactory(subContainer, factory);
+
+    // push previous data
+    result = [...result, data];
+  }
+
+  return result;
 }
 
 // process all type of providers
@@ -42,4 +75,43 @@ export async function processProviders(
       container.bind(provider.token).toConstantValue(value);
     }
   }
+}
+
+/**
+ * processing all configs from a class decorators
+ * @param decoratorFactories decorator factories config
+ */
+export async function processDecorators<R, S>(
+  target: Constructable,
+  metadataKeys: DecoratorMetadata,
+  container?: Container
+): Promise<DecoratorData<R, S>> {
+  const factories = getFactoryConfigs<R, S>(target, metadataKeys);
+
+  // create class container
+  const rootContainer = new Container();
+  if (container) {
+    rootContainer.parent = container;
+  }
+
+  // make target instance
+  const instance = rootContainer.resolve(target);
+  // bind root instance
+  rootContainer.bind(RootInstance).toConstantValue(instance);
+
+  // solve sub factories
+  const subData: { [key: string]: S[] } = {};
+  for (const key in factories.sub) {
+    subData[key] = await processFactories(factories.sub[key], rootContainer);
+  }
+  // binding sub data to root container
+  rootContainer.bind(SubData).toConstantValue(subData);
+
+  // solve root factories
+  const rootData: R[] = await processFactories(factories.root, rootContainer);
+
+  return {
+    root: rootData,
+    sub: subData,
+  };
 }

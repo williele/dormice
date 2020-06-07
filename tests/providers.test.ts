@@ -1,6 +1,13 @@
-import { processFactory, processProviders } from "../src/providers";
+import {
+  processFactory,
+  processProviders,
+  processFactories,
+  processDecorators,
+} from "../src/providers";
 import { FactoryConfig, Providers } from "../src/types";
 import { Container, injectable } from "inversify";
+import { PreviousData, SubData } from "../src/token";
+import { makeDecorator } from "../src/decorators";
 
 describe("providers", () => {
   it("should process factory config correctly", async () => {
@@ -41,6 +48,40 @@ describe("providers", () => {
     expect(result).toEqual("success");
   });
 
+  it("should async process list of factories", async () => {
+    const factory1: FactoryConfig<string> = {
+      deps: () => [],
+      factory: () => Promise.resolve("hello"),
+    };
+    const factory2: FactoryConfig<string> = {
+      deps: () => [PreviousData],
+      factory: (previous: string) => `${previous} world`,
+    };
+
+    let data = await processFactories([factory1, factory2]);
+    expect(data).toEqual(["hello", "hello world"]);
+
+    // container with parent
+    const container = new Container();
+    container.bind("prefix").toConstantValue("me");
+
+    data = await processFactories(
+      [
+        {
+          deps: () => ["prefix"],
+          factory: (prefix: string) => `${prefix}:`,
+        },
+        {
+          deps: () => [PreviousData],
+          factory: (prev) => `${prev} hello world`,
+        },
+      ],
+      container
+    );
+
+    expect(data).toEqual(["me:", "me: hello world"]);
+  });
+
   it("should processing list of providers correctly", async () => {
     const container = new Container();
 
@@ -73,5 +114,81 @@ describe("providers", () => {
 
     expect(container.get(StringToken)).toBe("hello world");
     expect(container.get(FactoryToken)).toBe("hello world");
+  });
+
+  it("should processing decorator factory", async () => {
+    const CLASS = Symbol("class");
+    const SUB = Symbol("sub");
+
+    const Decorator = makeDecorator(
+      {
+        on: ["class", "method"],
+        callback: () => ({
+          deps: () => [PreviousData],
+          factory: (prev) => `${prev} factory`,
+        }),
+      },
+      { rootMetadata: CLASS, subMetadata: SUB }
+    );
+
+    const ClassDecorator = makeDecorator(
+      {
+        on: ["class"],
+        callback: () => ({
+          deps: () => [SubData],
+          factory: (sub) => sub,
+        }),
+      },
+      { rootMetadata: CLASS, subMetadata: SUB }
+    );
+
+    @ClassDecorator
+    @Decorator
+    class MyClass {
+      @Decorator
+      prop;
+
+      @Decorator
+      @Decorator
+      method() {}
+    }
+
+    const data = await processDecorators(MyClass, {
+      rootMetadata: CLASS,
+      subMetadata: SUB,
+    });
+    const sub = { method: [" factory", " factory factory"] };
+    const root = [" factory", { ...sub }];
+
+    expect(data).toEqual({ root, sub });
+
+    // should provide outside key
+    const container = new Container();
+    container.bind("hello").toConstantValue("hello");
+
+    const HelloDecorator = makeDecorator(
+      {
+        on: ["class"],
+        callback: () => ({
+          deps: () => ["hello"],
+          factory: (hello: string) => hello,
+        }),
+      },
+      { rootMetadata: CLASS, subMetadata: SUB }
+    );
+
+    @HelloDecorator
+    class HelloClass {}
+
+    const helloData = await processDecorators(
+      HelloClass,
+      {
+        rootMetadata: CLASS,
+        subMetadata: SUB,
+      },
+      container
+    );
+
+    expect(helloData).toEqual({ root: ["hello"], sub: {} });
   });
 });
