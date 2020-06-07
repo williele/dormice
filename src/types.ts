@@ -38,7 +38,7 @@ export type Providers = Provider[];
 export interface DecoratorConfig<T> {
   // which type of decorators is this.
   // definition by a array, for it can be multiple types
-  on: ("class" | "method" | "property")[];
+  on: ("class" | "method" | "property" | "parameter")[];
   // callback provide information about decorator for customizer
   // callback should return a factory config to store on metadata to later processing
   callback: (info: DecoratorInfo) => FactoryConfig<T>;
@@ -77,20 +77,26 @@ export interface DecoratorData<R, S> {
 export interface DecoratorInfo {
   // where is the decotor deploy on
   // parameter and method will return both as method
-  on: "class" | "method" | "property";
+  on: "class" | "method" | "property" | "parameter";
   // target object will be decorate
   target: any;
   // if decorator use on method (parameter) or property
   // this will be method or property name
   key?: string;
-  // if decorator use on method (parameter)
+  // if decorator use on parameter
+  // paremeter info about index
+  index?: number;
+  // if decorator use on method
   // class method information about descriptor
   descriptor?: PropertyDescriptor;
   // if decorator use on property
   // this will be property type
   type?: any;
-  // if decorator use on parameter
-  // this will be paramter type
+  // if decorator use on list method or paramter
+  // this will be all paramters type of method
+  paramTypes?: any;
+  // if decorator use on a paramter
+  // this is a type of parameter
   paramType?: any;
   // if decorator use on method (parameter)
   // this will be the method return type

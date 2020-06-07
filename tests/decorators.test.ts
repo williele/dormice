@@ -12,7 +12,7 @@ describe("decorators builder", () => {
 
     const Decorator = makeDecorator({
       on: ["class"],
-      callback: mockCallback,
+      callback: mockCallback
     });
 
     @Decorator
@@ -36,7 +36,7 @@ describe("decorators builder", () => {
 
     const Decorator = makeDecorator({
       on: ["class", "method"],
-      callback: mockCallback,
+      callback: mockCallback
     });
 
     @Decorator
@@ -46,7 +46,7 @@ describe("decorators builder", () => {
 
       @Decorator
       @Decorator
-      method() {}
+      method(@Decorator foo: string) {}
     }
 
     // ignore properties
@@ -59,11 +59,17 @@ describe("decorators builder", () => {
 
     const mockFactory = () => {};
     const mockCallback = jest.fn((info: DecoratorInfo) => {
-      expect(["class", "method", "property"]).toContain(info.on);
+      expect(["class", "method", "property", "parameter"]).toContain(info.on);
+      if (info.on === "parameter") {
+        expect(info.paramType).toBe(String);
+      }
       return mockFactory;
     });
     const Decorator = makeDecorator(
-      { on: ["class", "property", "method"], callback: mockCallback },
+      {
+        on: ["class", "property", "method", "parameter"],
+        callback: mockCallback
+      },
       { rootMetadata: ROOT, subMetadata: SUB }
     );
 
@@ -73,14 +79,14 @@ describe("decorators builder", () => {
       prop: string;
 
       @Decorator
-      method() {}
+      method(@Decorator foo: string, @Decorator bar: string) {}
     }
 
-    expect(mockCallback.mock.calls.length).toBe(3);
+    expect(mockCallback.mock.calls.length).toBe(5);
     expect(Reflect.getMetadata(ROOT, MyClass)).toStrictEqual([mockFactory]);
     expect(Reflect.getMetadata(SUB, MyClass)).toStrictEqual({
       prop: [mockFactory],
-      method: [mockFactory],
+      method: [mockFactory, mockFactory, mockFactory]
     });
   });
 
@@ -95,7 +101,7 @@ describe("decorators builder", () => {
 
     const Decorator = makeSpecialDecorator({
       on: ["class", "property"],
-      callback: () => () => ({ message: "hello world" }),
+      callback: () => () => ({ message: "hello world" })
     });
 
     @Decorator

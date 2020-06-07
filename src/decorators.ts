@@ -15,18 +15,47 @@ export function makeDecorator<T = any>(
   config: DecoratorConfig<T>,
   metadataKeys?: DecoratorMetadata
 ) {
-  return (target, key?: string, descriptor?: PropertyDescriptor) => {
+  return (target, key?: string, descriptor?: PropertyDescriptor | number) => {
     // get reflect type in metadata
     const typeInfo: Partial<DecoratorInfo> = {
       type: key && Reflect.getMetadata("design:type", target, key),
       returnType: key && Reflect.getMetadata("design:returntype", target, key),
-      paramType: key && Reflect.getMetadata("design:paramtypes", target, key),
+      paramTypes: key && Reflect.getMetadata("design:paramtypes", target, key)
     };
 
-    // method
+    // parameters
     if (
       key !== undefined &&
       descriptor !== undefined &&
+      typeof descriptor === "number" &&
+      config.on.includes("parameter")
+    ) {
+      const info: DecoratorInfo = {
+        on: "parameter",
+        target,
+        key,
+        paramType: typeInfo.paramTypes[descriptor],
+        index: descriptor,
+        ...typeInfo
+      };
+
+      // get factory config
+      const factoryConfig = config.callback(info);
+      if (metadataKeys?.subMetadata) {
+        registeSubMeta(
+          target.constructor,
+          key!,
+          metadataKeys.subMetadata,
+          factoryConfig
+        );
+      }
+    }
+
+    // method
+    else if (
+      key !== undefined &&
+      descriptor !== undefined &&
+      typeof descriptor !== "number" &&
       config.on.includes("method")
     ) {
       const info: DecoratorInfo = {
@@ -34,7 +63,7 @@ export function makeDecorator<T = any>(
         target,
         key,
         descriptor,
-        ...typeInfo,
+        ...typeInfo
       };
 
       // get factory config
@@ -59,7 +88,7 @@ export function makeDecorator<T = any>(
         on: "property",
         target,
         key,
-        ...typeInfo,
+        ...typeInfo
       };
 
       // get factory config
