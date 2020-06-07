@@ -39,8 +39,6 @@ export interface DecoratorConfig<T> {
   // which type of decorators is this.
   // definition by a array, for it can be multiple types
   on: ("class" | "method" | "property")[];
-  // wether class is injectable
-  injectable?: boolean;
   // callback provide information about decorator for customizer
   // callback should return a factory config to store on metadata to later processing
   callback: (info: DecoratorInfo) => FactoryConfig<T>;

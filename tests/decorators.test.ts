@@ -12,7 +12,6 @@ describe("decorators builder", () => {
 
     const Decorator = makeDecorator({
       on: ["class"],
-      injectable: true,
       callback: mockCallback,
     });
 
