@@ -9,7 +9,13 @@ import {
   ProcessResult,
 } from "./types";
 import { getFactoryConfigs } from "./register";
-import { RootInstance, PreviousData, SubData } from "./token";
+import {
+  RootInstance,
+  PreviousData,
+  SubData,
+  Result,
+  SubResult,
+} from "./token";
 import { createContainer } from "./container";
 
 // process a factory by factory config
@@ -34,20 +40,27 @@ export async function processFactory<T>(
 export async function processFactories<T>(
   factoryConfigs: FactoryConfig<T>[],
   container?: Container
-): Promise<T[]> {
-  let result: T[] = [];
-  for (const factory of factoryConfigs) {
-    const subContainer = await createContainer([], container);
+): Promise<{ result: T | undefined; data: T[] }> {
+  let data: T[] = [];
+  let result: T | undefined = undefined;
 
-    // binding previous data
-    subContainer.bind(PreviousData).toConstantValue(result);
-    const data = await processFactory(subContainer, factory);
+  for (const factory of factoryConfigs) {
+    const subContainer = await createContainer(
+      [
+        { token: PreviousData, useValue: data },
+        { token: Result, useValue: result },
+      ],
+      container
+    );
+    // solve
+    const factorydata = await processFactory(subContainer, factory);
 
     // push previous data
-    result = [...result, data];
+    data = [...data, factorydata];
+    result = factorydata;
   }
 
-  return result;
+  return { result, data };
 }
 
 // process all type of providers
@@ -100,17 +113,23 @@ export async function processDecorators<R, S>(
 
   // solve sub factories
   const subData: { [key: string]: S[] } = {};
+  const subResult: { [key: string]: S } = {};
   for (const key in factories.sub) {
-    subData[key] = await processFactories(factories.sub[key], rootContainer);
+    const configs = await processFactories(factories.sub[key], rootContainer);
+
+    if (configs.data.length) subData[key] = configs.data;
+    if (configs.result) subResult[key] = configs.result;
   }
-  // binding sub data to root container
+
+  // binding sub data and sub result to root container
   rootContainer.bind(SubData).toConstantValue(subData);
+  rootContainer.bind(SubResult).toConstantValue(subResult);
 
   // solve root factories
-  const rootData: R[] = await processFactories(factories.root, rootContainer);
+  const configs = await processFactories(factories.root, rootContainer);
 
   return {
-    result: rootData[rootData.length - 1],
-    data: { root: rootData, sub: subData },
+    result: configs.result,
+    data: { root: configs.data, sub: subData },
   };
 }

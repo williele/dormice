@@ -6,7 +6,7 @@ import {
 } from "../src/providers";
 import { FactoryConfig, Providers } from "../src/types";
 import { Container, injectable } from "inversify";
-import { PreviousData, SubData } from "../src/token";
+import { PreviousData, SubData, Result } from "../src/token";
 import { makeDecorator } from "../src/decorators";
 
 describe("providers", () => {
@@ -49,17 +49,17 @@ describe("providers", () => {
   });
 
   it("should async process list of factories", async () => {
-    const factory1: FactoryConfig<string> = {
-      deps: () => [],
-      factory: () => Promise.resolve("hello"),
-    };
-    const factory2: FactoryConfig<string> = {
-      deps: () => [PreviousData],
-      factory: (previous: string) => `${previous} world`,
-    };
-
-    let data = await processFactories([factory1, factory2]);
-    expect(data).toEqual(["hello", "hello world"]);
+    let data = await processFactories([
+      () => Promise.resolve("hello"),
+      {
+        deps: () => [PreviousData],
+        factory: (previous: string) => `${previous} world`,
+      },
+    ]);
+    expect(data).toEqual({
+      result: "hello world",
+      data: ["hello", "hello world"],
+    });
 
     // container with parent
     const container = new Container();
@@ -79,7 +79,26 @@ describe("providers", () => {
       container
     );
 
-    expect(data).toEqual(["me:", "me: hello world"]);
+    expect(data).toEqual({
+      result: "me: hello world",
+      data: ["me:", "me: hello world"],
+    });
+
+    // should inject previous result
+    const factory = jest.fn((result: string) => {
+      expect(result).toBe("hello world");
+      return `result: ${result}`;
+    });
+
+    data = await processFactories([
+      () => "hello world",
+      { deps: () => [Result], factory },
+    ]);
+
+    expect(data).toEqual({
+      result: "result: hello world",
+      data: ["hello world", "result: hello world"],
+    });
   });
 
   it("should processing list of providers correctly", async () => {
