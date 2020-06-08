@@ -1,6 +1,9 @@
 import { makeDecorator } from "../src/decorators";
 import { DecoratorInfo, DecoratorConfig, FactoryConfig } from "../src/types";
 import { Container } from "inversify";
+import { processDecorators } from "../src/providers";
+import { registeRootMeta } from "../src/register";
+import { Result } from "../src/token";
 
 describe("decorators builder", () => {
   it("should make single target decorator correctly", () => {
@@ -12,7 +15,7 @@ describe("decorators builder", () => {
 
     const Decorator = makeDecorator({
       on: ["class"],
-      callback: mockCallback
+      callback: mockCallback,
     });
 
     @Decorator
@@ -36,7 +39,7 @@ describe("decorators builder", () => {
 
     const Decorator = makeDecorator({
       on: ["class", "method"],
-      callback: mockCallback
+      callback: mockCallback,
     });
 
     @Decorator
@@ -68,7 +71,7 @@ describe("decorators builder", () => {
     const Decorator = makeDecorator(
       {
         on: ["class", "property", "method", "parameter"],
-        callback: mockCallback
+        callback: mockCallback,
       },
       { rootMetadata: ROOT, subMetadata: SUB }
     );
@@ -86,7 +89,7 @@ describe("decorators builder", () => {
     expect(Reflect.getMetadata(ROOT, MyClass)).toStrictEqual([mockFactory]);
     expect(Reflect.getMetadata(SUB, MyClass)).toStrictEqual({
       prop: [mockFactory],
-      method: [mockFactory, mockFactory, mockFactory]
+      method: [mockFactory, mockFactory, mockFactory],
     });
   });
 
@@ -101,7 +104,7 @@ describe("decorators builder", () => {
 
     const Decorator = makeSpecialDecorator({
       on: ["class", "property"],
-      callback: () => () => ({ message: "hello world" })
+      callback: () => () => ({ message: "hello world" }),
     });
 
     @Decorator
@@ -109,5 +112,68 @@ describe("decorators builder", () => {
       @Decorator
       prop;
     }
+  });
+
+  it("should inheritance correctly", async () => {
+    const ROOT = Symbol("root");
+    const SUB = Symbol("sub");
+
+    const Decorator = (message: string) =>
+      makeDecorator(
+        {
+          on: ["class", "property"],
+          callback: () => ({
+            deps: () => [Result],
+            factory: (result = "") => `${result}${message}`,
+          }),
+        },
+        { rootMetadata: ROOT, subMetadata: SUB }
+      );
+
+    // should inheritance correctly
+    @Decorator("first")
+    class FirstClass {
+      @Decorator("propfirst")
+      prop: string;
+    }
+
+    @Decorator("second")
+    class SecondClass extends FirstClass {
+      @Decorator("propsecond")
+      prop: string;
+    }
+
+    let configs = await processDecorators(FirstClass, {
+      rootMetadata: ROOT,
+      subMetadata: SUB,
+    });
+    expect(configs.result).toBe("first");
+    expect(configs.data).toEqual({
+      root: ["first"],
+      sub: { prop: ["propfirst"] },
+    });
+
+    configs = await processDecorators(SecondClass, {
+      rootMetadata: ROOT,
+      subMetadata: SUB,
+    });
+    expect(configs.result).toBe("firstsecond");
+    expect(configs.data).toEqual({
+      root: ["first", "firstsecond"],
+      sub: { prop: ["propfirst", "propfirstpropsecond"] },
+    });
+
+    // should give default from accestor
+    class ThirdClass extends SecondClass {}
+
+    configs = await processDecorators(ThirdClass, {
+      rootMetadata: ROOT,
+      subMetadata: SUB,
+    });
+    expect(configs.result).toBe("firstsecond");
+    expect(configs.data).toEqual({
+      root: ["first", "firstsecond"],
+      sub: { prop: ["propfirst", "propfirstpropsecond"] },
+    });
   });
 });

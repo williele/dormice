@@ -17,9 +17,13 @@ export function registeSubMeta<T>(
 ) {
   Object.freeze(factoryConfig);
 
-  const registers: { [key: string]: FactoryConfig<T>[] } =
+  let registers: { [key: string]: FactoryConfig<T>[] } =
     Reflect.getMetadata(metadatakey, target) || {};
+  // copy the object (in case this is extends class)
+  registers = { ...registers };
   registers[key] = registers[key] || [];
+  // copy the array (in case this is extends class)
+  registers[key] = [...registers[key]];
   registers[key].push(factoryConfig);
 
   Reflect.defineMetadata(metadatakey, registers, target);
@@ -38,9 +42,10 @@ export function registeRootMeta<T>(
 ) {
   Object.freeze(factoryConfig);
 
-  const registers: FactoryConfig<T>[] =
+  let registers: FactoryConfig<T>[] =
     Reflect.getMetadata(metadataKey, target) || [];
-  registers.push(factoryConfig);
+  // copy the array (in case this is extends class)
+  registers = [...registers, factoryConfig];
 
   // define
   Reflect.defineMetadata(metadataKey, registers, target);
@@ -72,11 +77,13 @@ export function getFactoryConfigs<R, S>(
   return {
     root:
       (metadata.rootMetadata &&
-        Reflect.getMetadata(metadata.rootMetadata, target)) ||
+        Reflect.getOwnMetadata(metadata.rootMetadata, target)) ||
+      Reflect.getMetadata(metadata.rootMetadata, target) ||
       [],
     sub:
       (metadata.subMetadata &&
-        Reflect.getMetadata(metadata.subMetadata, target)) ||
+        Reflect.getOwnMetadata(metadata.subMetadata, target)) ||
+      Reflect.getMetadata(metadata.subMetadata, target) ||
       {},
   };
 }
