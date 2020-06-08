@@ -163,7 +163,7 @@ describe("providers", () => {
     const sub = { method: [" factory", " factory factory"] };
     const root = [" factory", { ...sub }];
 
-    expect(data).toEqual({ root, sub });
+    expect(data).toEqual({ result: { ...sub }, data: { root, sub } });
 
     // should provide outside key
     const container = new Container();
@@ -192,6 +192,9 @@ describe("providers", () => {
       container
     );
 
-    expect(helloData).toEqual({ root: ["hello"], sub: {} });
+    expect(helloData).toEqual({
+      result: "hello",
+      data: { root: ["hello"], sub: {} },
+    });
   });
 });

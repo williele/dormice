@@ -102,3 +102,11 @@ export interface DecoratorInfo {
   // this will be the method return type
   returnType?: any;
 }
+
+/**
+ * result interface return by process decorator
+ */
+export interface ProcessResult<R, S> {
+  result: R; // the last data for root
+  data: DecoratorData<R, S>;
+}

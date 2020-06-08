@@ -7,6 +7,7 @@ import {
   DecoratorData,
   DecoratorMetadata,
   Constructable,
+  ProcessResult,
 } from "./types";
 import { getFactoryConfigs } from "./register";
 import { RootInstance, PreviousData, SubData } from "./token";
@@ -88,7 +89,7 @@ export async function processDecorators<R, S>(
   target: Constructable,
   metadataKeys: DecoratorMetadata,
   container?: Container
-): Promise<DecoratorData<R, S>> {
+): Promise<ProcessResult<R, S>> {
   const factories = getFactoryConfigs<R, S>(target, metadataKeys);
 
   // create class container
@@ -113,5 +114,8 @@ export async function processDecorators<R, S>(
   // solve root factories
   const rootData: R[] = await processFactories(factories.root, rootContainer);
 
-  return { root: rootData, sub: subData };
+  return {
+    result: rootData[rootData.length - 1],
+    data: { root: rootData, sub: subData },
+  };
 }
