@@ -4,3 +4,5 @@ export const RootInstance = Symbol("dormice:root");
 export const PreviousData = Symbol("dormice:privous_data");
 // sub (properties, method, parameters) data, { [key]: data[] }
 export const SubData = Symbol("dormice:sub_data");
+// take container
+export const ParentContainer = Symbol("dormice:parent_containers");

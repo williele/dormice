@@ -4,13 +4,13 @@ import { Container } from "inversify";
 import {
   FactoryConfig,
   Providers,
-  DecoratorData,
   DecoratorMetadata,
   Constructable,
   ProcessResult,
 } from "./types";
 import { getFactoryConfigs } from "./register";
 import { RootInstance, PreviousData, SubData } from "./token";
+import { createContainer } from "./container";
 
 // process a factory by factory config
 // provide neccessary dependencies for factory
@@ -37,10 +37,7 @@ export async function processFactories<T>(
 ): Promise<T[]> {
   let result: T[] = [];
   for (const factory of factoryConfigs) {
-    const subContainer = new Container();
-    if (container) {
-      subContainer.parent = container;
-    }
+    const subContainer = await createContainer([], container);
 
     // binding previous data
     subContainer.bind(PreviousData).toConstantValue(result);
@@ -58,6 +55,7 @@ export async function processProviders(
   providers: Providers,
   container?: Container
 ): Promise<Container> {
+  // if no container input, then create one
   container = container || new Container();
 
   for (const provider of providers) {
@@ -93,10 +91,7 @@ export async function processDecorators<R, S>(
   const factories = getFactoryConfigs<R, S>(target, metadataKeys);
 
   // create class container
-  const rootContainer = new Container();
-  if (container) {
-    rootContainer.parent = container;
-  }
+  const rootContainer = await createContainer([], container);
 
   // make target instance
   const instance = rootContainer.resolve(target);
