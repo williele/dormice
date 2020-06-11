@@ -104,6 +104,13 @@ export interface DecoratorInfo {
 }
 
 /**
+ * decorator processing
+ */
+export interface ProcessDecoratorOptions {
+  makeInstance?: boolean;
+}
+
+/**
  * result interface return by process decorator
  */
 export interface ProcessResult<R, S> {

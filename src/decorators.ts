@@ -20,7 +20,7 @@ export function makeDecorator<T = any>(
     const typeInfo: Partial<DecoratorInfo> = {
       type: key && Reflect.getMetadata("design:type", target, key),
       returnType: key && Reflect.getMetadata("design:returntype", target, key),
-      paramTypes: key && Reflect.getMetadata("design:paramtypes", target, key)
+      paramTypes: key && Reflect.getMetadata("design:paramtypes", target, key),
     };
 
     // parameters
@@ -36,7 +36,7 @@ export function makeDecorator<T = any>(
         key,
         paramType: typeInfo.paramTypes[descriptor],
         index: descriptor,
-        ...typeInfo
+        ...typeInfo,
       };
 
       // get factory config
@@ -63,7 +63,7 @@ export function makeDecorator<T = any>(
         target,
         key,
         descriptor,
-        ...typeInfo
+        ...typeInfo,
       };
 
       // get factory config
@@ -88,7 +88,7 @@ export function makeDecorator<T = any>(
         on: "property",
         target,
         key,
-        ...typeInfo
+        ...typeInfo,
       };
 
       // get factory config

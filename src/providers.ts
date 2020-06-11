@@ -7,6 +7,7 @@ import {
   DecoratorMetadata,
   Constructable,
   ProcessResult,
+  ProcessDecoratorOptions,
 } from "./types";
 import { getFactoryConfigs } from "./register";
 import {
@@ -99,17 +100,20 @@ export async function processProviders(
 export async function processDecorators<R, S>(
   target: Constructable,
   metadataKeys: DecoratorMetadata,
-  container?: Container
+  container?: Container,
+  options: ProcessDecoratorOptions = {}
 ): Promise<ProcessResult<R, S>> {
   const factories = getFactoryConfigs<R, S>(target, metadataKeys);
 
   // create class container
   const rootContainer = await createContainer([], container);
 
-  // make target instance
-  const instance = rootContainer.resolve(target);
-  // bind root instance
-  rootContainer.bind(RootInstance).toConstantValue(instance);
+  if (options.makeInstance === true) {
+    // make target instance
+    const instance = rootContainer.resolve(target);
+    // bind root instance
+    rootContainer.bind(RootInstance).toConstantValue(instance);
+  }
 
   // solve sub factories
   const subData: { [key: string]: S[] } = {};
