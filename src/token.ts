@@ -1,5 +1,9 @@
 // class root instance
 export const RootInstance = Symbol("dormice:root");
+export const TargetInstance = RootInstance;
+// target class
+export const Target = Symbol("dormice:target");
+
 // previous sub on a same keyname, data[]
 export const PreviousData = Symbol("dormice:previous_data");
 // sub (properties, method, parameters) data, { [key]: data[] }

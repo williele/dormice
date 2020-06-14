@@ -4,9 +4,15 @@ import {
   processFactories,
   processDecorators,
 } from "../src/providers";
-import { FactoryConfig, Providers } from "../src/types";
+import { FactoryConfig, Providers, DecoratorMetadata } from "../src/types";
 import { Container, injectable } from "inversify";
-import { PreviousData, SubData, Result } from "../src/token";
+import {
+  PreviousData,
+  SubData,
+  Result,
+  Target,
+  TargetInstance,
+} from "../src/token";
 import { makeDecorator } from "../src/decorators";
 
 describe("providers", () => {
@@ -138,82 +144,119 @@ describe("providers", () => {
     expect(customContainer.get(StringToken)).toBe("hello world");
   });
 
-  it("should processing decorator factory", async () => {
+  describe("processing decorator", () => {
     const CLASS = Symbol("class");
     const SUB = Symbol("sub");
-
-    const Decorator = makeDecorator(
-      {
-        on: ["class", "method"],
-        callback: () => ({
-          deps: () => [PreviousData],
-          factory: (prev) => `${prev} factory`,
-        }),
-      },
-      { rootMetadata: CLASS, subMetadata: SUB }
-    );
-
-    const ClassDecorator = makeDecorator(
-      {
-        on: ["class"],
-        callback: () => ({
-          deps: () => [SubData],
-          factory: (sub) => sub,
-        }),
-      },
-      { rootMetadata: CLASS, subMetadata: SUB }
-    );
-
-    @ClassDecorator
-    @Decorator
-    class MyClass {
-      @Decorator
-      prop;
-
-      @Decorator
-      @Decorator
-      method() {}
-    }
-
-    const data = await processDecorators(MyClass, {
+    const metadatas: DecoratorMetadata = {
       rootMetadata: CLASS,
       subMetadata: SUB,
+    };
+
+    let Decorator;
+    beforeEach(() => {
+      Decorator = makeDecorator(
+        {
+          on: ["class", "method"],
+          callback: () => ({
+            deps: () => [PreviousData],
+            factory: (prev) => `${prev} factory`,
+          }),
+        },
+        metadatas
+      );
     });
-    const sub = { method: [" factory", " factory factory"] };
-    const root = [" factory", { ...sub }];
 
-    expect(data).toEqual({ result: { ...sub }, data: { root, sub } });
+    it("should provide target and target instance", async () => {
+      const factoryMock = jest.fn((target, instance) => {
+        expect(target).toBeTruthy();
+        expect(instance).toBeTruthy();
+        expect(target).toBe(Foo);
+        expect(instance).toBeInstanceOf(Foo);
+      });
 
-    // should provide outside key
-    const container = new Container();
-    container.bind("hello").toConstantValue("hello");
+      const Decorator = makeDecorator(
+        {
+          on: ["class"],
+          callback: () => ({
+            deps: () => [Target, TargetInstance],
+            factory: factoryMock,
+          }),
+        },
+        metadatas
+      );
 
-    const HelloDecorator = makeDecorator(
-      {
-        on: ["class"],
-        callback: () => ({
-          deps: () => ["hello"],
-          factory: (hello: string) => hello,
-        }),
-      },
-      { rootMetadata: CLASS, subMetadata: SUB }
-    );
+      @Decorator
+      class Foo {}
 
-    @HelloDecorator
-    class HelloClass {}
+      await processDecorators(Foo, metadatas, undefined, {
+        makeInstance: true,
+      });
+      expect(factoryMock).toBeCalled();
+    });
 
-    const helloData = await processDecorators(
-      HelloClass,
-      {
+    it("should processing decorator factory correctly", async () => {
+      const ClassDecorator = makeDecorator(
+        {
+          on: ["class"],
+          callback: () => ({
+            deps: () => [SubData],
+            factory: (sub) => sub,
+          }),
+        },
+        { rootMetadata: CLASS, subMetadata: SUB }
+      );
+
+      @ClassDecorator
+      @Decorator
+      class MyClass {
+        @Decorator
+        prop;
+
+        @Decorator
+        @Decorator
+        method() {}
+      }
+
+      const data = await processDecorators(MyClass, {
         rootMetadata: CLASS,
         subMetadata: SUB,
-      },
-      container
-    );
+      });
+      const sub = { method: [" factory", " factory factory"] };
+      const root = [" factory", { ...sub }];
 
-    expect(helloData).toEqual({
-      result: "hello",
-      data: { root: ["hello"], sub: {} },
+      expect(data).toEqual({ result: { ...sub }, data: { root, sub } });
+
+      // should provide outside key
+      const container = new Container();
+      container.bind("hello").toConstantValue("hello");
+
+      const HelloDecorator = makeDecorator(
+        {
+          on: ["class"],
+          callback: () => ({
+            deps: () => ["hello"],
+            factory: (hello: string) => hello,
+          }),
+        },
+        { rootMetadata: CLASS, subMetadata: SUB }
+      );
+
+      @HelloDecorator
+      class HelloClass {}
+
+      const helloData = await processDecorators(
+        HelloClass,
+        {
+          rootMetadata: CLASS,
+          subMetadata: SUB,
+        },
+        container
+      );
+
+      expect(helloData).toEqual({
+        result: "hello",
+        data: { root: ["hello"], sub: {} },
+      });
     });
   });
 });

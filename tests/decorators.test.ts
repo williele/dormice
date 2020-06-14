@@ -1,8 +1,7 @@
 import { makeDecorator } from "../src/decorators";
-import { DecoratorInfo, DecoratorConfig, FactoryConfig } from "../src/types";
+import { DecoratorInfo, DecoratorConfig } from "../src/types";
 import { Container } from "inversify";
 import { processDecorators } from "../src/providers";
-import { registeRootMeta } from "../src/register";
 import { Result } from "../src/token";
 
 describe("decorators builder", () => {
@@ -49,11 +48,14 @@ describe("decorators builder", () => {
 
       @Decorator
       @Decorator
-      method(@Decorator foo: string) {}
+      method(@Decorator foo: string) {
+        return foo;
+      }
     }
 
     // ignore properties
     expect(mockCallback.mock.calls.length).toBe(3);
+    expect(MyClass).toBeTruthy(); // placeholding
   });
 
   it("should make decorator for all target correctly", () => {
@@ -82,7 +84,9 @@ describe("decorators builder", () => {
       prop: string;
 
       @Decorator
-      method(@Decorator foo: string, @Decorator bar: string) {}
+      method(@Decorator foo: string, @Decorator bar: string) {
+        return foo + bar;
+      }
     }
 
     expect(mockCallback.mock.calls.length).toBe(5);
@@ -106,12 +110,6 @@ describe("decorators builder", () => {
       on: ["class", "property"],
       callback: () => () => ({ message: "hello world" }),
     });
-
-    @Decorator
-    class MyClass {
-      @Decorator
-      prop;
-    }
   });
 
   it("should inheritance correctly", async () => {
