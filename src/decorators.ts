@@ -23,12 +23,14 @@ export function makeDecorator<T = any>(
       paramTypes: key && Reflect.getMetadata("design:paramtypes", target, key),
     };
 
+    const onTarget = Array.isArray(config.on) ? config.on : [config.on];
+
     // parameters
     if (
       key !== undefined &&
       descriptor !== undefined &&
       typeof descriptor === "number" &&
-      config.on.includes("parameter")
+      onTarget.includes("parameter")
     ) {
       const info: DecoratorInfo = {
         on: "parameter",
@@ -56,7 +58,7 @@ export function makeDecorator<T = any>(
       key !== undefined &&
       descriptor !== undefined &&
       typeof descriptor !== "number" &&
-      config.on.includes("method")
+      onTarget.includes("method")
     ) {
       const info: DecoratorInfo = {
         on: "method",
@@ -82,7 +84,7 @@ export function makeDecorator<T = any>(
     if (
       key !== undefined &&
       descriptor === undefined &&
-      config.on.includes("property")
+      onTarget.includes("property")
     ) {
       const info: DecoratorInfo = {
         on: "property",
@@ -104,7 +106,7 @@ export function makeDecorator<T = any>(
     }
 
     // class
-    else if (config.on.includes("class") && typeof target === "function") {
+    else if (onTarget.includes("class") && typeof target === "function") {
       const info: DecoratorInfo = { on: "class", target, ...typeInfo };
 
       // get factory config

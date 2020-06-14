@@ -15,8 +15,8 @@ import {
   SubData,
   Result,
   SubResult,
-  Target,
-  TargetInstance,
+  Root,
+  RootInstance,
 } from "./token";
 import { createContainer } from "./container";
 
@@ -109,14 +109,14 @@ export async function processDecorators<R, S>(
   // create class container
   const rootContainer = await createContainer([], container);
 
-  // bind target
-  rootContainer.bind(Target).toConstantValue(target);
+  // bind root class
+  rootContainer.bind(Root).toConstantValue(target);
   // resolve on target instance
   if (options.makeInstance === true) {
     // make target instance
     const instance = rootContainer.resolve(target);
-    // bind target instance
-    rootContainer.bind(TargetInstance).toConstantValue(instance);
+    // bind root instance
+    rootContainer.bind(RootInstance).toConstantValue(instance);
   }
 
   // solve sub factories

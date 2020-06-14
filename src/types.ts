@@ -19,7 +19,7 @@ export type FactoryConfig<T> =
   | Factory<T>;
 
 // list of providers
-export type ProviderToken = string | symbol;
+export type ProviderToken = string | symbol | Constructable;
 
 export type ProviderValue = {
   token: ProviderToken;
@@ -33,12 +33,16 @@ export type Provider = ProviderValue | ProviderFactory | Constructable;
 export type Providers = Provider[];
 
 /**
+ * list of posible decorator target
+ */
+export type DecoratorTarget = "class" | "method" | "property" | "parameter";
+/**
  * configuration for customize make decorator
  */
 export interface DecoratorConfig<T> {
   // which type of decorators is this.
   // definition by a array, for it can be multiple types
-  on: ("class" | "method" | "property" | "parameter")[];
+  on: DecoratorTarget | DecoratorTarget[];
   // callback provide information about decorator for customizer
   // callback should return a factory config to store on metadata to later processing
   callback: (info: DecoratorInfo) => FactoryConfig<T>;
@@ -77,7 +81,7 @@ export interface DecoratorData<R, S> {
 export interface DecoratorInfo {
   // where is the decotor deploy on
   // parameter and method will return both as method
-  on: "class" | "method" | "property" | "parameter";
+  on: DecoratorTarget;
   // target object will be decorate
   target: any;
   // if decorator use on method (parameter) or property

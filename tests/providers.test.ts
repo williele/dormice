@@ -10,8 +10,8 @@ import {
   PreviousData,
   SubData,
   Result,
-  Target,
-  TargetInstance,
+  Root,
+  RootInstance,
 } from "../src/token";
 import { makeDecorator } from "../src/decorators";
 
@@ -167,18 +167,18 @@ describe("providers", () => {
     });
 
     it("should provide target and target instance", async () => {
-      const factoryMock = jest.fn((target, instance) => {
-        expect(target).toBeTruthy();
-        expect(instance).toBeTruthy();
-        expect(target).toBe(Foo);
-        expect(instance).toBeInstanceOf(Foo);
+      const factoryMock = jest.fn((root, rootInstance) => {
+        expect(root).toBeTruthy();
+        expect(rootInstance).toBeTruthy();
+        expect(root).toBe(Foo);
+        expect(rootInstance).toBeInstanceOf(Foo);
       });
 
       const Decorator = makeDecorator(
         {
           on: ["class"],
           callback: () => ({
-            deps: () => [Target, TargetInstance],
+            deps: () => [Root, RootInstance],
             factory: factoryMock,
           }),
         },
@@ -197,7 +197,7 @@ describe("providers", () => {
     it("should processing decorator factory correctly", async () => {
       const ClassDecorator = makeDecorator(
         {
-          on: ["class"],
+          on: "class",
           callback: () => ({
             deps: () => [SubData],
             factory: (sub) => sub,
@@ -232,7 +232,7 @@ describe("providers", () => {
 
       const HelloDecorator = makeDecorator(
         {
-          on: ["class"],
+          on: "class",
           callback: () => ({
             deps: () => ["hello"],
             factory: (hello: string) => hello,
