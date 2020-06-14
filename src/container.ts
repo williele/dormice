@@ -8,7 +8,7 @@ export async function createContainer(
   providers: Providers = [],
   parent?: Container
 ) {
-  const container = new Container();
+  const container = new Container({ defaultScope: "Singleton" });
   if (parent) {
     container.parent = parent;
   }

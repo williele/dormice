@@ -1,7 +1,16 @@
 import { createContainer } from "../src/container";
 import { ParentContainer } from "../src/token";
+import { injectable } from "inversify";
 
 describe("container", () => {
+  it("should is singleton", async () => {
+    @injectable()
+    class Test {}
+
+    const container = await createContainer([Test]);
+    expect(container.get(Test)).toBe(container.get(Test));
+  });
+
   it("should create container correctly", async () => {
     let container = await createContainer();
 
